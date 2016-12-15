@@ -81,9 +81,9 @@ namespace fangoost{
         @returns approximate expectation
     */
     template<typename Number>
-    std::vector<Number> computeInv(int xDiscrete, int uDiscrete,  const Number& xMin, const Number& xMax, auto&& fnInv, auto&& vK){
-        Number du=computeDU(xMin, xMax);
-        Number cp=(2.0*du)/M_PI;
+    auto computeInv(int xDiscrete, int uDiscrete,  const Number& xMin, const Number& xMax, auto&& fnInv, auto&& vK){
+        auto du=computeDU(xMin, xMax);
+        auto cp=(2.0*du)/M_PI;
         auto halfFirstIndex=[](auto&& val){
             val[0]=.5*val[0];
             return std::move(val);
@@ -104,10 +104,8 @@ namespace fangoost{
         @returns approximate density
     */
     template<typename Number>
-    std::vector<Number> computeInv(int xDiscrete, int uDiscrete,  const Number& xMin, const Number& xMax, auto&& fnInv){
+    auto computeInv(int xDiscrete, int uDiscrete,  const Number& xMin, const Number& xMax, auto&& fnInv){
         return computeInv(xDiscrete, uDiscrete,  xMin, xMax, fnInv, [&](const auto& u, const auto& x){
-            //std::cout<<"u: "<<u<<std::endl;
-            //std::cout<<"x: "<<x-xMin<<std::endl;
             return cos(u*(x-xMin));
         });
     }
