@@ -3,11 +3,15 @@
 #include <complex>
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <type_traits>
 #ifndef M_PI
     #define M_PI 3.14159265358979323846
 #endif
 #include "FunctionalUtilities.h"
 
+template<typename T> struct is_vector : public std::false_type {};
+
+template<typename T, typename A> struct is_vector<std::vector<T, A>> : public std::true_type {};
 namespace fangoost{
     /**
         Function to compute the discrete X range per Fang Oosterlee (2007)
@@ -128,7 +132,7 @@ namespace fangoost{
         @returns approximate convolution
     */
     template<typename Index, typename Number, typename CF, typename VK>
-    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
+    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, VK&& vK, std::false_type){ //vk as defined in fang oosterlee
         Number dx=computeDX(xDiscrete, xMin, xMax);
         Number du=computeDU(xMin, xMax);
         return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
@@ -137,6 +141,7 @@ namespace fangoost{
             });
         });
     }
+    
     /**
         Computes the convolution given the discretized characteristic function.
         @xDiscrete Number of discrete points in density domain
@@ -148,7 +153,7 @@ namespace fangoost{
         @returns approximate convolution
     */
     template<typename Index, typename Number, typename CF>
-    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, const std::vector<Number>&& vK){ //vk as defined in fang oosterlee
+    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, const std::vector<Number>&& vK, std::true_type){ //vk as defined in fang oosterlee
         Number dx=computeDX(xDiscrete, xMin, xMax);
         Number du=computeDU(xMin, xMax);
         return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
@@ -157,5 +162,12 @@ namespace fangoost{
             });
         });
     }
+    
+    template<typename Index, typename Number, typename CF, typename VK>
+    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
+        return computeConvolution(xDiscrete, uDiscrete, xMin, xMax, discreteCF, vK, is_vector<T>{});
+    }
+    
+    
 }
 #endif
