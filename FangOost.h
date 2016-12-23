@@ -165,7 +165,7 @@ namespace fangoost{
     
     template<typename Index, typename Number, typename CF, typename VK>
     auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
-        return computeConvolution(xDiscrete, uDiscrete, xMin, xMax, discreteCF, vK, is_vector<T>{});
+        return computeConvolution(xDiscrete, uDiscrete, xMin, xMax, discreteCF, vK, is_vector<VK>{});
     }
     
     
