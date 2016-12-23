@@ -26,7 +26,7 @@ namespace fangoost{
         @return vector of discrete U values
     */
     template<typename Index, typename Number>
-    aut computeURange(const Index& uDiscrete, const Number& xMin, const Number& xMax){
+    auto computeURange(const Index& uDiscrete, const Number& xMin, const Number& xMax){
         //Number uMax=(M_PI/(xMax-xMin))*(uDiscrete-1.0);
         return futilities::for_emplace_back(0, (M_PI/(xMax-xMin))*(uDiscrete-1.0), uDiscrete, [](const auto& val){
             return val;
