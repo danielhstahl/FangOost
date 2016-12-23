@@ -148,7 +148,7 @@ namespace fangoost{
         @returns approximate convolution
     */
     template<typename Index, typename Number, typename CF>
-    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, std::vector<Number>&& vK){ //vk as defined in fang oosterlee
+    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, const std::vector<Number>&& vK){ //vk as defined in fang oosterlee
         Number dx=computeDX(xDiscrete, xMin, xMax);
         Number du=computeDU(xMin, xMax);
         return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
