@@ -184,26 +184,6 @@ namespace fangoost{
             return fnInv(u)*exp(-u*xMin)*cp;
         })), vK);
 
-
-        /*auto discreteCF=halfFirstIndex(futilities::for_each_parallel(0, uDiscrete, [&](const auto& index){
-            auto u=std::complex<Number>(0, getU(du, index));
-            return fnInv(u)*exp(-u*xMin)*cp;
-        }));
-        auto dx=computeDX(xDiscrete, xMin, xMax);
-        return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
-            auto x=getX(xMin, dx, xIndex);
-            return futilities::sum(0, uDiscrete, [&](const auto& uIndex){
-                auto u=getU(du, uIndex);
-                auto uC=std::complex<Number>(0.0, u);
-                return (discreteCF[uIndex]*exp(uC*x)).real()*vK(u, x);
-            });
-        });*/
-
-
-        /*return computeConvolution(xDiscrete, uDiscrete, xMin, xMax, halfFirstIndex(futilities::for_each_parallel(0, uDiscrete, [&](const auto& index){
-            auto u=std::complex<Number>(0, getU(du, index));
-            return (fnInv(u)*exp(-u*xMin)).real()*cp;
-        })), vK);*/
     }
 
 
