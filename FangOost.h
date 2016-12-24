@@ -9,11 +9,11 @@
 #endif
 #include "FunctionalUtilities.h"
 
-#ifndef __IS_VECTOR
-#define __IS_VECTOR
-template<typename T> struct is_vector : public std::false_type {};
-template<typename T, typename A> struct is_vector<std::vector<T, A>> : public std::true_type {};
-#endif
+/*#ifndef __IS_COMPLEX
+#define __IS_COMPLEX
+template<typename T> struct is_complex_vector: public std::false_type {};
+template<typename T, typename A> struct is_complex_vector<std::vector<T, A>> : public std::true_type {};
+#endif*/
 namespace fangoost{
     /**
         Function to compute the discrete X range per Fang Oosterlee (2007)
@@ -35,13 +35,13 @@ namespace fangoost{
         @xMax the maximum of the X domain
         @return vector of discrete U values
     */
-    template<typename Index, typename Number>
+    /*template<typename Index, typename Number>
     auto computeURange(const Index& uDiscrete, const Number& xMin, const Number& xMax){
         //Number uMax=(M_PI/(xMax-xMin))*(uDiscrete-1.0);
         return futilities::for_emplace_back(0, (M_PI/(xMax-xMin))*(uDiscrete-1.0), uDiscrete, [](const auto& val){
             return val;
         });
-    }
+    }*/
     /**
         Function to compute the discrete X.  The operation is cheap and takes less ram than simply using the computeXRange function to create a vector
         @xMin the minimum of the X domain
@@ -96,18 +96,20 @@ namespace fangoost{
         @returns approximate convolution
     */
     template<typename Index, typename Number, typename CF, typename VK>
-    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, VK&& vK, std::false_type){ //vk as defined in fang oosterlee
+    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
         Number dx=computeDX(xDiscrete, xMin, xMax);
         Number du=computeDU(xMin, xMax);
         return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
+            auto x=getX(xMin, dx, xIndex);
             return futilities::sum(0, uDiscrete, [&](const auto& uIndex){
-                return discreteCF[uIndex]*vK(getU(du, uIndex), getX(xMin, dx, xIndex));
+                auto u=getU(du, uIndex);
+                return discreteCF[uIndex]*vK(u, x);
             });
         });
     }
-    
+
     /**
-        Computes the convolution given the discretized characteristic function.
+        Computes the convolution given the discretized characteristic function.  More general than computeConvolution since it takes the discrete X values as well
         @xDiscrete Number of discrete points in density domain
         @uDiscrete Number of discrete points in the complex domain
         @xmin Minimum number in the density domain
@@ -117,20 +119,20 @@ namespace fangoost{
         @returns approximate convolution
     */
     template<typename Index, typename Number, typename CF, typename VK>
-    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, VK&& vK, std::true_type){ //vk as defined in fang oosterlee
+    auto computeConvolutionComplex(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
         Number dx=computeDX(xDiscrete, xMin, xMax);
         Number du=computeDU(xMin, xMax);
         return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
+            auto x=getX(xMin, dx, xIndex);
             return futilities::sum(0, uDiscrete, [&](const auto& uIndex){
-                return discreteCF[uIndex]*vK[uIndex];
+                auto u=getU(du, uIndex);
+                auto uC=std::complex<Number>(0, u);
+                return (discreteCF[uIndex]*exp(uC*x)).real()*vK(u, x);
             });
         });
     }
-    
-    template<typename Index, typename Number, typename CF, typename VK>
-    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, const VK& vK){ //vk as defined in fang oosterlee
-        return computeConvolution(xDiscrete, uDiscrete, xMin, xMax, discreteCF, vK, is_vector<VK>{});
-    }
+
+
 
 
     /**
@@ -151,11 +153,60 @@ namespace fangoost{
             val[0]=.5*val[0];
             return std::move(val);
         };
+        
         return computeConvolution(xDiscrete, uDiscrete, xMin, xMax, halfFirstIndex(futilities::for_each_parallel(0, uDiscrete, [&](const auto& index){
             auto u=std::complex<Number>(0, getU(du, index));
             return (fnInv(u)*exp(-u*xMin)).real()*cp;
         })), vK);
     }
+
+    /**
+        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. See Fang Oosterlee (2007) for more information.
+        @xDiscrete Number of discrete points in density domain
+        @uDiscrete Number of discrete points in the complex domain
+        @xmin Minimum number in the density domain
+        @xmax Maximum number in the density domain
+        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
+        @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
+        @returns approximate expectation
+    */
+    template<typename Index, typename Number, typename CF, typename VK>
+    auto computeExpectation(const Index& xDiscrete, const Index& uDiscrete,  const Number& xMin, const Number& xMax, CF&& fnInv, VK&& vK){
+        auto du=computeDU(xMin, xMax);
+        auto cp=(2.0*du)/M_PI;
+        auto halfFirstIndex=[](auto&& val){
+            val[0]=.5*val[0];
+            return std::move(val);
+        };
+
+         return computeConvolutionComplex(xDiscrete, uDiscrete, xMin, xMax, halfFirstIndex(futilities::for_each_parallel(0, uDiscrete, [&](const auto& index){
+            auto u=std::complex<Number>(0, getU(du, index));
+            return fnInv(u)*exp(-u*xMin)*cp;
+        })), vK);
+
+
+        /*auto discreteCF=halfFirstIndex(futilities::for_each_parallel(0, uDiscrete, [&](const auto& index){
+            auto u=std::complex<Number>(0, getU(du, index));
+            return fnInv(u)*exp(-u*xMin)*cp;
+        }));
+        auto dx=computeDX(xDiscrete, xMin, xMax);
+        return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
+            auto x=getX(xMin, dx, xIndex);
+            return futilities::sum(0, uDiscrete, [&](const auto& uIndex){
+                auto u=getU(du, uIndex);
+                auto uC=std::complex<Number>(0.0, u);
+                return (discreteCF[uIndex]*exp(uC*x)).real()*vK(u, x);
+            });
+        });*/
+
+
+        /*return computeConvolution(xDiscrete, uDiscrete, xMin, xMax, halfFirstIndex(futilities::for_each_parallel(0, uDiscrete, [&](const auto& index){
+            auto u=std::complex<Number>(0, getU(du, index));
+            return (fnInv(u)*exp(-u*xMin)).real()*cp;
+        })), vK);*/
+    }
+
+
     /**
         Computes a discrete density corresponding to the characteristic function fnInv at the discrete points xRange in xmin, xmax.
         @xDiscrete Number of discrete points in density domain
@@ -168,7 +219,7 @@ namespace fangoost{
     template<typename Index, typename Number, typename CF>
     auto computeInv(const Index& xDiscrete, const Index& uDiscrete,  const Number& xMin, const Number& xMax, CF&& fnInv){
         return computeInv(xDiscrete, uDiscrete,  xMin, xMax, fnInv, [&](const auto& u, const auto& x){
-            return cos(u*(x-xMin));
+            return cos(u*(x-xMin));//*exp(std::complex<Number>(0, -u*x));
         });
     }
     

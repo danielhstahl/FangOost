@@ -12,17 +12,17 @@ TEST_CASE("Test computeXRange", "[FangOost]"){
     REQUIRE(fangoost::computeURange(5, 0.0, 1.0)==std::vector<double>({0, .25, .5, .75}));
 }*/ 
 TEST_CASE("Test computeInv", "[FangOost]"){
-    const double mu=5;
+    const double mu=2;
     const double sigma=1;
     const int numX=5;
     const int numU=256;
-    const double xMin=0;
-    const double xMax=10;
+    const double xMin=-3;
+    const double xMax=7;
     auto normCF=[&](const auto& u){ //normal distribution's CF
         return exp(u*mu+.5*u*u*sigma*sigma);
-    };     
+    };      
     std::vector<double> referenceNormal=fangoost::computeXRange(numX, xMin, xMax);
-    referenceNormal=futilities::for_each(std::move(referenceNormal), [&](double x, double index){
+    referenceNormal=futilities::for_each(std::move(referenceNormal), [&](double x, double index){ 
         return exp(-pow(x-mu, 2)/(2*sigma*sigma))/(sqrt(2*M_PI)*sigma);
     });
     auto myInverse=fangoost::computeInv(numX, numU, xMin, xMax, normCF);
