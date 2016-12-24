@@ -9,9 +9,11 @@
 #endif
 #include "FunctionalUtilities.h"
 
+#ifndef __IS_VECTOR
+#define __IS_VECTOR
 template<typename T> struct is_vector : public std::false_type {};
-
 template<typename T, typename A> struct is_vector<std::vector<T, A>> : public std::true_type {};
+#endif
 namespace fangoost{
     /**
         Function to compute the discrete X range per Fang Oosterlee (2007)
