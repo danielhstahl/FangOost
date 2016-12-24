@@ -82,45 +82,7 @@ namespace fangoost{
     auto computeDU(const Number& xMin,const Number& xMax){
         return M_PI/(xMax-xMin);
     }
-    /**
-        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. See Fang Oosterlee (2007) for more information.
-        @xDiscrete Number of discrete points in density domain
-        @uDiscrete Number of discrete points in the complex domain
-        @xmin Minimum number in the density domain
-        @xmax Maximum number in the density domain
-        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
-        @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
-        @returns approximate expectation
-    */
-    template<typename Index, typename Number, typename CF, typename VK>
-    auto computeInv(const Index& xDiscrete, const Index& uDiscrete,  const Number& xMin, const Number& xMax, CF&& fnInv, VK&& vK){
-        auto du=computeDU(xMin, xMax);
-        auto cp=(2.0*du)/M_PI;
-        auto halfFirstIndex=[](auto&& val){
-            val[0]=.5*val[0];
-            return std::move(val);
-        };
-        return computeConvolution(xDiscrete, uDiscrete, xMin, xMax, halfFirstIndex(futilities::for_each_parallel(0, uDiscrete, [&](const auto& index){
-            //auto val=getU(du, index);
-            auto u=std::complex<Number>(0, getU(du, index));
-            return (fnInv(u)*exp(-u*xMin)).real()*cp;
-        })), vK);
-    }
-    /**
-        Computes a discrete density corresponding to the characteristic function fnInv at the discrete points xRange in xmin, xmax.
-        @xDiscrete Number of discrete points in density domain
-        @uDiscrete Number of discrete points in the complex domain
-        @xmin Minimum number in the density domain
-        @xmax Maximum number in the density domain
-        @fnInv Characteristic function of the density
-        @returns approximate density
-    */
-    template<typename Index, typename Number, typename CF>
-    auto computeInv(const Index& xDiscrete, const Index& uDiscrete,  const Number& xMin, const Number& xMax, CF&& fnInv){
-        return computeInv(xDiscrete, uDiscrete,  xMin, xMax, fnInv, [&](const auto& u, const auto& x){
-            return cos(u*(x-xMin));
-        });
-    }
+
     /**
         Computes the convolution given the discretized characteristic function.
         @xDiscrete Number of discrete points in density domain
@@ -152,8 +114,8 @@ namespace fangoost{
         @vK Function (parameters u and x)  
         @returns approximate convolution
     */
-    template<typename Index, typename Number, typename CF>
-    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, const std::vector<Number>&& vK, std::true_type){ //vk as defined in fang oosterlee
+    template<typename Index, typename Number, typename CF, typename VK>
+    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, VK&& vK, std::true_type){ //vk as defined in fang oosterlee
         Number dx=computeDX(xDiscrete, xMin, xMax);
         Number du=computeDU(xMin, xMax);
         return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
@@ -164,9 +126,50 @@ namespace fangoost{
     }
     
     template<typename Index, typename Number, typename CF, typename VK>
-    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
+    auto computeConvolution(const Index& xDiscrete, const Index& uDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF, const VK& vK){ //vk as defined in fang oosterlee
         return computeConvolution(xDiscrete, uDiscrete, xMin, xMax, discreteCF, vK, is_vector<VK>{});
     }
+
+
+    /**
+        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. See Fang Oosterlee (2007) for more information.
+        @xDiscrete Number of discrete points in density domain
+        @uDiscrete Number of discrete points in the complex domain
+        @xmin Minimum number in the density domain
+        @xmax Maximum number in the density domain
+        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
+        @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
+        @returns approximate expectation
+    */
+    template<typename Index, typename Number, typename CF, typename VK>
+    auto computeInv(const Index& xDiscrete, const Index& uDiscrete,  const Number& xMin, const Number& xMax, CF&& fnInv, VK&& vK){
+        auto du=computeDU(xMin, xMax);
+        auto cp=(2.0*du)/M_PI;
+        auto halfFirstIndex=[](auto&& val){
+            val[0]=.5*val[0];
+            return std::move(val);
+        };
+        return computeConvolution(xDiscrete, uDiscrete, xMin, xMax, halfFirstIndex(futilities::for_each_parallel(0, uDiscrete, [&](const auto& index){
+            auto u=std::complex<Number>(0, getU(du, index));
+            return (fnInv(u)*exp(-u*xMin)).real()*cp;
+        })), vK);
+    }
+    /**
+        Computes a discrete density corresponding to the characteristic function fnInv at the discrete points xRange in xmin, xmax.
+        @xDiscrete Number of discrete points in density domain
+        @uDiscrete Number of discrete points in the complex domain
+        @xmin Minimum number in the density domain
+        @xmax Maximum number in the density domain
+        @fnInv Characteristic function of the density
+        @returns approximate density
+    */
+    template<typename Index, typename Number, typename CF>
+    auto computeInv(const Index& xDiscrete, const Index& uDiscrete,  const Number& xMin, const Number& xMax, CF&& fnInv){
+        return computeInv(xDiscrete, uDiscrete,  xMin, xMax, fnInv, [&](const auto& u, const auto& x){
+            return cos(u*(x-xMin));
+        });
+    }
+    
     
     
 }
