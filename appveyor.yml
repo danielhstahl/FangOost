@@ -1,0 +1,38 @@
+# Specify version format
+version: "{build}"
+
+# Operating system (build VM template)
+os: Visual Studio 2015
+# build platform, i.e. Win32 (instead of x86), x64, Any CPU. This setting is optional.
+platform: 
+  - Win32
+  #- x64  Disable build for x64 machine until x64 version of dart-prerequisites is ready
+
+environment:
+  MSVC_DEFAULT_OPTIONS: ON
+
+# build configuration, i.e. Debug, Release, etc.
+configuration:
+  - Debug
+  - Release
+#environment:
+ # matrix:
+  #- VS_VERSION: 14 2015
+  #  VS_PLATFORM: win32
+  #- VS_VERSION: 14 2015
+  #  VS_PLATFORM: x64
+
+clone_folder: C:\projects\fangoost
+
+install:
+  - cmd: cd C:\projects
+  - cmd: git clone https://github.com/phillyfan1138/FunctionalUtilities
+  - cmd: cd fangoost
+  - cmd: make
+
+build: off
+test: off
+
+
+
+
