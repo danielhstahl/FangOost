@@ -13,14 +13,7 @@ environment:
 
 # build configuration, i.e. Debug, Release, etc.
 configuration:
-  - Debug
   - Release
-#environment:
- # matrix:
-  #- VS_VERSION: 14 2015
-  #  VS_PLATFORM: win32
-  #- VS_VERSION: 14 2015
-  #  VS_PLATFORM: x64
 
 clone_folder: C:\projects\fangoost
 
