@@ -1,5 +1,5 @@
 
-| [Linux][lin-link] | [Windows][win-link] | [Coveralls][cov-link] |
+| [Linux][lin-link] | [Windows][win-link] | [Codecov][cov-link] |
 | :---------------: | :-----------------: | :-------------------: |
 | ![lin-badge]      | ![win-badge]        | ![cov-badge]          |
 
