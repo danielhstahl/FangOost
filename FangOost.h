@@ -101,9 +101,9 @@ namespace fangoost{
         Number du=computeDU(xMin, xMax);
         return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
             auto x=getX(xMin, dx, xIndex);
-            return futilities::sum(0, uDiscrete, [&](const auto& uIndex){
+            return futilities::sum(discreteCF, [&](const auto& cfIncr, auto& uIndex){
                 auto u=getU(du, uIndex);
-                return discreteCF[uIndex]*vK(u, x);
+                return cfIncr*vK(u, x);
             });
         });
     }
@@ -124,10 +124,10 @@ namespace fangoost{
         Number du=computeDU(xMin, xMax);
         return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
             auto x=getX(xMin, dx, xIndex);
-            return futilities::sum(0, uDiscrete, [&](const auto& uIndex){
+            return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
                 auto u=getU(du, uIndex);
                 auto uC=std::complex<Number>(0, u);
-                return (discreteCF[uIndex]*exp(uC*x)).real()*vK(u, x);
+                return (cfIncr*exp(uC*x)).real()*vK(u, x);
             });
         });
     }
