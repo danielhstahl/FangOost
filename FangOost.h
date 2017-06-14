@@ -101,7 +101,7 @@ namespace fangoost{
         Number du=computeDU(xMin, xMax);
         return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
             auto x=getX(xMin, dx, xIndex);
-            return futilities::sum(discreteCF, [&](const auto& cfIncr, auto& uIndex){
+            return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
                 auto u=getU(du, uIndex);
                 return cfIncr*vK(u, x);
             });
