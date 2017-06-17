@@ -31,3 +31,27 @@ TEST_CASE("Test computeInv", "[FangOost]"){
     }    
     
 } 
+TEST_CASE("Test computeInvDiscrete", "[FangOost]"){
+    const double mu=2;
+    const double sigma=1;
+    const int numX=5;
+    const int numU=256;
+    const double xMin=-3;
+    const double xMax=7;
+    auto normCF=[&](const auto& u){ //normal distribution's CF
+        return exp(u*mu+.5*u*u*sigma*sigma);
+    };      
+    std::vector<double> referenceNormal=fangoost::computeXRange(numX, xMin, xMax);
+    referenceNormal=futilities::for_each(std::move(referenceNormal), [&](double x, double index){ 
+        return exp(-pow(x-mu, 2)/(2*sigma*sigma))/(sqrt(2*M_PI)*sigma);
+    });
+    auto du=fangoost::computeDU(xMin, xMax);
+    auto cp=fangoost::computeCP(du);
+    auto discreteCF=futilities::for_each_parallel(0, numU, [&](const auto& index){
+        return fangoost::formatCF(fangoost::getComplexU(fangoost::getU(du, index)), xMin, cp, normCF);
+    });
+    auto myInverse=fangoost::computeInvDiscrete(numX,  xMin, xMax, std::move(discreteCF));
+    for(int i=0; i<numX; ++i){
+        REQUIRE(myInverse[i]==Approx(referenceNormal[i]));
+    }    
+} 
