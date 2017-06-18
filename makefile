@@ -4,4 +4,4 @@ test:test.o
 test.o:test.cpp FangOost.h
 	g++ -std=c++14 -O3 -pthread --coverage -c test.cpp $(INCLUDES) -fopenmp 
 clean:
-	-rm *.o testFunctional
+	-rm *.o test
