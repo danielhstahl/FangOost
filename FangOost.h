@@ -112,6 +112,7 @@ namespace fangoost{
     auto formatCF(const U& u, const Number& xMin, const Number& cp, CF&& fnInv){
         return (fnInv(u)*exp(-u*xMin)).real()*cp;
     }
+    
     /**
         Helper function to get complex u
         @u The real valued complex component.  Can be computed using getU(du, index)
@@ -137,10 +138,12 @@ namespace fangoost{
             auto x=getX(xMin, dx, xIndex);
             return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
                 auto u=getU(du, uIndex);
+                /**I dont require a exp(uC*x) like in computeConvolutionComplex because its already incorporated in the "VK", eg cos(u(x-xmin))*/
                 return cfIncr*vK(u, x);
             });
         });
     }
+    
     
     /**
         Computes the convolution given the discretized characteristic function.  More general than computeConvolution since it takes the discrete X values as well
