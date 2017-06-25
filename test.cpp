@@ -75,19 +75,16 @@ TEST_CASE("Test computeInvDiscrete for two gaussian added", "[FangOost]"){
         return exp(-pow(x-combinedMu, 2)/(2*combinedSig*combinedSig))/(sqrt(2*M_PI)*combinedSig);
     });
     auto du=fangoost::computeDU(xMin, xMax);
-    auto cp=fangoost::computeCP(du);
-    auto discreteCF1=futilities::for_each_parallel(0, numU, [&](const auto& index){
+    //
+    auto discreteCF=futilities::for_each_parallel(0, numU, [&](const auto& index){
         return normCF(fangoost::getComplexU(fangoost::getU(du, index)));
     });
-
-    std::vector<double> discreteCF;
-    for(int i=0; i<discreteCF1.size();++i){
-        discreteCF.emplace_back(exp(2.0*discreteCF1[i]-xMin*fangoost::getComplexU(fangoost::getU(du, i))).real()*cp);
+    std::vector<double> aTest;
+    for(auto& val:discreteCF){
+        val=2.0*val;
     }
-
-    auto myInverse=fangoost::computeInvDiscrete(numX,  xMin, xMax, std::move(discreteCF));
+    auto myInverse=fangoost::computeInvDiscreteLog(numX,  xMin, xMax, std::move(discreteCF));
     for(int i=0; i<numX; ++i){
-        //std::cout<<myInverse[i]<<", "<<referenceNormal[i]<<", "<<xRange[i]<<std::endl;
         REQUIRE(myInverse[i]==Approx(referenceNormal[i]));
-    }    
+    }   
 } 
