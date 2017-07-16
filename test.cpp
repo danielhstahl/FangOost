@@ -88,3 +88,28 @@ TEST_CASE("Test computeInvDiscrete for two gaussian added", "[FangOost]"){
         REQUIRE(myInverse[i]==Approx(referenceNormal[i]));
     }   
 } 
+
+TEST_CASE("Test computeExpectationVector", "FangOost"){
+    int numX=100;
+    int numU=100;
+    double xmin=-5;
+    double xmax=5;
+    const double mu=2;
+    const double sigma=1;
+    auto normCF=[&](const auto& u){ //normal distribution's CF
+        return u*mu+.5*u*u*sigma*sigma;
+    }; 
+    auto vk=[&](const auto& u, const auto& x){
+        return cos(u*(x-xmin));
+    };
+    auto result1=fangoost::computeExpectation(numX, numU, xmin, xmax, normCF, vk);
+    double dx=fangoost::computeDX(numX, xmin, xmax);
+    auto xArray=futilities::for_each_parallel(0, numX, [&](const auto& index){
+        return fangoost::getX(xmin, dx, index);
+    });
+
+    auto result2=fangoost::computeExpectationVector(xArray, numU, normCF, vk);
+    for(int i=0; i<numX; ++i){
+        REQUIRE(result1[i]==Approx(result2[i]));
+    }
+}

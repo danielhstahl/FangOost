@@ -172,7 +172,7 @@ namespace fangoost{
 
     template<typename Array, typename CF, typename VK>
     auto computeConvolutionComplexVector(Array&& xValues, CF&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
-        auto du=computeDU(*xValues.begin(), *xValues.end());
+        auto du=computeDU(xValues.front(), xValues.back());
         return futilities::for_each_parallel(xValues, [&](const auto& x, const auto& xIndex){
             return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
                 auto u=getU(du, uIndex);
@@ -294,9 +294,9 @@ namespace fangoost{
     }
     template<typename Array, typename Index,typename CF, typename VK>
     auto computeExpectationVector(Array&& xValues, const Index& uDiscrete,  CF&& fnInv, VK&& vK){
-        auto xMin=*xValues.begin();
-        auto du=computeDU(*xValues.begin(), *xValues.end());
-        auto cp=computeCP(du);   
+        auto xMin=xValues.front();
+        auto du=computeDU(xValues.front(), xValues.back());
+        auto cp=computeCP(du); 
         return computeConvolutionComplexVector(xValues, halfFirstIndex(futilities::for_each_parallel(0, uDiscrete, [&](const auto& index){
             auto u=getComplexU(getU(du, index));
             return fnInv(u)*exp(-u*xMin)*cp;
