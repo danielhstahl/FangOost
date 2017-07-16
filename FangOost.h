@@ -154,7 +154,7 @@ namespace fangoost{
         @xmin Minimum number in the density domain
         @xmax Maximum number in the density domain
         @discreteCF Discretized characteristic function.  This is vector of complex numbers.
-        @vK Function (parameters u and x)  
+        @vK Function (parameters u and x, and index)  
         @returns approximate convolution
     */
     template<typename Index, typename Number, typename CF, typename VK>
@@ -163,6 +163,17 @@ namespace fangoost{
         Number du=computeDU(xMin, xMax);
         return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
             auto x=getX(xMin, dx, xIndex);
+            return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
+                auto u=getU(du, uIndex);
+                return (cfIncr*exp(getComplexU(u)*x)).real()*vK(u, x);
+            });
+        });
+    }
+
+    template<typename Array, typename CF, typename VK>
+    auto computeConvolutionComplexVector(Array&& xValues, CF&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
+        auto du=computeDU(*xValues.begin(), *xValues.end());
+        return futilities::for_each_parallel(xValues, [&](const auto& x, const auto& xIndex){
             return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
                 auto u=getU(du, uIndex);
                 return (cfIncr*exp(getComplexU(u)*x)).real()*vK(u, x);
@@ -281,5 +292,16 @@ namespace fangoost{
             return fnInv(u)*exp(-u*xMin)*cp;
         })), vK);
     }
+    template<typename Array, typename Index,typename CF, typename VK>
+    auto computeExpectationVector(Array&& xValues, const Index& uDiscrete,  CF&& fnInv, VK&& vK){
+        auto xMin=*xValues.begin();
+        auto du=computeDU(*xValues.begin(), *xValues.end());
+        auto cp=computeCP(du);   
+        return computeConvolutionComplexVector(xValues, halfFirstIndex(futilities::for_each_parallel(0, uDiscrete, [&](const auto& index){
+            auto u=getComplexU(getU(du, index));
+            return fnInv(u)*exp(-u*xMin)*cp;
+        })), vK);
+    }
+
 }
 #endif
