@@ -470,6 +470,8 @@ namespace fangoost{
     ){
         return computeConvolutionAtPointLevy(
             xValue, 
+            xMin,
+            xMax,
             halfFirstIndex(
                 computeDiscreteCF(
                     xMin, 
@@ -492,6 +494,8 @@ namespace fangoost{
     ){
         return computeConvolutionAtPoint(
             xValue, 
+            xMin,
+            xMax,
             halfFirstIndex(
                 computeDiscreteCFReal(
                     xMin, 
