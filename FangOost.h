@@ -320,22 +320,7 @@ namespace fangoost{
     auto computeInv(const Index& xDiscrete, const Index& uDiscrete,  const Number& xMin, const Number& xMax, CF&& fnInv){  
         return computeInvDiscrete(xDiscrete, xMin, xMax, computeDiscreteCFReal(xMin, xMax, uDiscrete, fnInv));
     }
-    /**
-        Computes a discrete density corresponding to the characteristic function fnInv at the discrete points xRange in xmin, xmax.
-        @xDiscrete Number of discrete points in density domain
-        @uDiscrete Number of discrete points in the complex domain
-        @xmin Minimum number in the density domain
-        @xmax Maximum number in the density domain
-        @fnInv Characteristic function of the density
-        @returns approximate density
-    */
-   /* template<typename Index, typename Number, typename CF>
-    auto computeInv(const Index& xDiscrete, const Index& uDiscrete,  const Number& xMin, const Number& xMax, CF&& fnInv){
-        return computeInv(xDiscrete, uDiscrete,  xMin, xMax, fnInv, [&](const auto& u, const auto& x){
-            return cos(u*(x-xMin));
-        });
-    }*/
-     
+        
      /**
         Computes the density given a log characteristic function at the discrete points xRange in xmin, xmax.  See Fang Oosterlee (2007) for more information.
         @xDiscrete Number of discrete points in density domain
