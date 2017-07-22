@@ -9,7 +9,18 @@
 #endif
 #include "FunctionalUtilities.h"
 
+/**
+    This library is used to implement in a generic manner Fang Oosterlee (2007).
+    The library is split into two sections: a "Levy" section and a standard CF
+    section.  Recall that in Fang Oosterlee the CF is exp(ux_0+\phi).  The
+    value of x_0 is actually log(S/K) and K iterates over all the strikes.
+    Hence the extra exp(X) is needed for the Levy sections. 
 
+    The non-levy sections are useful for standard inversion and expectation
+    techniques using CFs.  The non-levy is more efficient than the levy 
+    sections.
+
+*/
 namespace fangoost{
     /**
         Function to compute the discrete X range per Fang Oosterlee (2007)
@@ -95,6 +106,7 @@ namespace fangoost{
     auto formatCFReal(const U& u, const Number& xMin, const Number& cp, CF&& fnInv){
         return (fnInv(u)*exp(-u*xMin)).real()*cp;
     }
+
     template<typename U, typename Number, typename CF>
     auto formatCF(const U& u, const Number& xMin, const Number& cp, CF&& fnInv){
         return fnInv(u)*exp(-u*xMin)*cp;
@@ -108,30 +120,35 @@ namespace fangoost{
     auto getComplexU(const Number& u){
         return std::complex<Number>(0, u);
     }
-    /**
-        Computes the convolution given the discretized characteristic function.
-        @xDiscrete Number of discrete points in density domain
-        @xmin Minimum number in the density domain
-        @xmax Maximum number in the density domain
-        @discreteCF Discretized characteristic function.  This is real numbers
-        @vK Function (parameters u and x)  
-        @returns approximate convolution
-    */
-    template<typename Index, typename Number, typename CF>
-    auto helperForInverse(const Index& xDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF){ //vk as defined in fang oosterlee
-        Number dx=computeDX(xDiscrete, xMin, xMax);
-        Number du=computeDU(xMin, xMax);
-        return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
-            auto x=getX(xMin, dx, xIndex);
-            return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
-                auto u=getU(du, uIndex);
-                /**I dont require a exp(uC*x) like in computeConvolutionComplex because its already incorporated in the "VK", eg cos(u(x-xmin))*/
-                return cfIncr*cos(u*(x-xMin));
-            });
-        });
+
+    /*Using X only makes sense for 
+    Levy processes where log(S/K) changes 
+    for every iteration.  This is done 
+    separately from the Characteristic
+    Function for computation purposes.*/
+    template<typename Cmpl, typename Number, typename Index, typename VK>
+    auto convoluteLevy(const Cmpl& cfIncr, const Number& x, const Number& u, const Index& uIndex, VK&& vK){
+        return (cfIncr*exp(getComplexU(u)*x)).real()*vK(u, x, uIndex);
+    }
+    //standard convolution in fouirer space (ie, multiplication)  */
+    template<typename Number, typename Index, typename VK>
+    auto convolute(const Number& cfIncr, const Number& x, const Number& u, const Index& uIndex, VK&& vK){
+        return cfIncr*vK(u, x, uIndex);
     }
 
-    /**used when aggregating log cfs and then having to ivnert the results*/
+    
+
+    /**used when aggregating log cfs and then having to invert the results
+        @xMin min of real plane
+        @xMax max of real plane
+        @logAndComplexCF vector of complex log values of a CF.  
+        @returns actual CF for inversion
+
+        Note that the exp(logAndComplex-u*xMin) is equivalent to 
+        the computation done in formatCFReal but with vector instead
+        of the function itself
+    
+    */
     template<typename Number, typename CF>
     auto convertLogCFToRealExp(const Number& xMin, const Number& xMax, CF&& logAndComplexCF){ 
         Number du=computeDU(xMin, xMax);
@@ -145,8 +162,10 @@ namespace fangoost{
     }
 
 
-
-    /**return discrete CF.  */
+    /**return vector of complex elements of cf. 
+    This is ONLY needed where the CF depends on 
+    a changing "x": like for option pricing where 
+    x=log(S/K) and K iterates  */
     template<typename Number, typename Index,typename CF>
     auto computeDiscreteCF(const Number& xMin, const Number& xMax, const Index& uDiscrete, CF&& fnInv){
         auto du=computeDU(xMin, xMax);
@@ -155,7 +174,11 @@ namespace fangoost{
             return formatCF(getComplexU(getU(du, index)), xMin, cp, fnInv);
         });
     }
-    /**return vector of real elements of cf.  mostly this is used for computing the inverse of a density.  Dont use for expectations*/
+    /**return vector of real elements of cf. 
+    This will work for nearly every type 
+    of inversion EXCEPT where the CF depends on 
+    a changing "x": like for option pricing where 
+    x=log(S/K) and K iterates  */
     template<typename Number, typename Index,typename CF>
     auto computeDiscreteCFReal(const Number& xMin, const Number& xMax, const Index& uDiscrete, CF&& fnInv){
         auto du=computeDU(xMin, xMax);
@@ -178,14 +201,54 @@ namespace fangoost{
         @returns approximate convolution
     */
     template<typename Index, typename Number, typename CFArray, typename VK>
+    auto computeConvolutionLevy(const Index& xDiscrete, const Number& xMin, const Number& xMax, CFArray&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
+        Number dx=computeDX(xDiscrete, xMin, xMax);
+        Number du=computeDU(xMin, xMax);
+        return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
+            auto x=getX(xMin, dx, xIndex);
+            return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
+                return convoluteLevy(cfIncr, x, getU(du, uIndex), uIndex, vK);
+                //return (cfIncr*exp(getComplexU(u)*x)).real()*vK(u, x);
+            });
+        });
+    }
+
+
+    template<typename Array, typename CFArray, typename VK>
+    auto computeConvolutionVectorLevy(Array&& xValues, CFArray&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
+        auto du=computeDU(xValues.front(), xValues.back());
+        return futilities::for_each_parallel(xValues, [&](const auto& x, const auto& xIndex){
+            return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
+                return convoluteLevy(cfIncr, x, getU(du, uIndex), uIndex, vK);
+            });
+        });
+    }
+
+    template<typename Number, typename CFArray, typename VK>
+    auto computeConvolutionAtPointLevy(const Number& xValue, const Number& xMin, const Number& xMax, CFArray&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
+        auto du=computeDU(xMin, xMax);
+        return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
+            return convoluteLevy(cfIncr, xValue, getU(du, uIndex), uIndex, vK);
+        });
+    }
+
+    /**
+        Computes the convolution given the discretized characteristic function.  
+        @xDiscrete Number of discrete points in density domain
+        @xmin Minimum number in the density domain
+        @xmax Maximum number in the density domain
+        @discreteCF Discretized characteristic function.  This is vector of complex numbers.
+        @vK Function (parameters u and x, and index)  
+        @returns approximate convolution
+    */
+    template<typename Index, typename Number, typename CFArray, typename VK>
     auto computeConvolution(const Index& xDiscrete, const Number& xMin, const Number& xMax, CFArray&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
         Number dx=computeDX(xDiscrete, xMin, xMax);
         Number du=computeDU(xMin, xMax);
         return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
             auto x=getX(xMin, dx, xIndex);
             return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
-                auto u=getU(du, uIndex);
-                return (cfIncr*exp(getComplexU(u)*x)).real()*vK(u, x);
+                return convolute(cfIncr, x, getU(du, uIndex), uIndex, vK);
             });
         });
     }
@@ -196,8 +259,7 @@ namespace fangoost{
         auto du=computeDU(xValues.front(), xValues.back());
         return futilities::for_each_parallel(xValues, [&](const auto& x, const auto& xIndex){
             return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
-                auto u=getU(du, uIndex);
-                return (cfIncr*exp(getComplexU(u)*x)).real()*vK(u, x);
+                return convolute(cfIncr, x, getU(du, uIndex), uIndex, vK);
             });
         });
     }
@@ -206,10 +268,27 @@ namespace fangoost{
     auto computeConvolutionAtPoint(const Number& xValue, const Number& xMin, const Number& xMax, CFArray&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
         auto du=computeDU(xMin, xMax);
         return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
-            auto u=getU(du, uIndex);
-            return (cfIncr*exp(getComplexU(u)*xValue)).real()*vK(u, xValue);
+            return convolute(cfIncr, xValue, getU(du, uIndex), uIndex, vK);
         });
     }
+
+    /**
+        Computes the convolution given the discretized characteristic function.
+        @xDiscrete Number of discrete points in density domain
+        @xmin Minimum number in the density domain
+        @xmax Maximum number in the density domain
+        @discreteCF Discretized characteristic function.  This is real numbers
+        @vK Function (parameters u and x)  
+        @returns approximate convolution
+    */
+    template<typename Index, typename Number, typename CF>
+    auto helperForInverse(const Index& xDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF){ //vk as defined in fang oosterlee
+        return computeConvolution(xDiscrete, xMin, xMax, discreteCF, [&](const auto& u, const auto& x, const auto& k){
+            return cos(u*(x-xMin));
+        });
+    }
+
+
 
 
     /**
@@ -271,7 +350,34 @@ namespace fangoost{
     }
 
     /**
-        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. See Fang Oosterlee (2007) for more information.
+        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. This is used if the CF is of a Levy process.  See Fang Oosterlee (2007) for more information.
+        @xDiscrete Number of discrete points in density domain
+        @uDiscrete Number of discrete points in the complex domain
+        @xmin Minimum number in the density domain
+        @xmax Maximum number in the density domain
+        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
+        @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
+        @returns approximate expectation
+    */
+    template<typename Index, typename Number, typename CF, typename VK>
+    auto computeExpectationLevy(
+        const Index& xDiscrete, 
+        const Index& uDiscrete,  
+        const Number& xMin, 
+        const Number& xMax, 
+        CF&& fnInv, 
+        VK&& vK
+    ){  
+        return computeConvolutionLevy(
+            xDiscrete, xMin, xMax, 
+            halfFirstIndex(
+                computeDiscreteCF(xMin, xMax, uDiscrete, fnInv)
+            ), 
+            vK
+        );
+    }
+    /**
+        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. Only used for non-Levy processes.  See Fang Oosterlee (2007) for more information.
         @xDiscrete Number of discrete points in density domain
         @uDiscrete Number of discrete points in the complex domain
         @xmin Minimum number in the density domain
@@ -292,13 +398,47 @@ namespace fangoost{
         return computeConvolution(
             xDiscrete, xMin, xMax, 
             halfFirstIndex(
-                computeDiscreteCF(xMin, xMax, uDiscrete, fnInv)
+                computeDiscreteCFReal(xMin, xMax, uDiscrete, fnInv)
             ), 
             vK
         );
     }
 
-    
+    /**
+        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. This is used if the CF is of a Levy process.  See Fang Oosterlee (2007) for more information.
+        @xValues x values to compute the function at.
+        @uDiscrete Number of discrete points in the complex domain
+        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
+        @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
+        @returns approximate expectation
+    */
+    template<typename Array, typename Index,typename CF, typename VK>
+    auto computeExpectationVectorLevy(
+        Array&& xValues, 
+        const Index& uDiscrete,  
+        CF&& fnInv, 
+        VK&& vK
+    ){
+        return computeConvolutionVectorLevy(
+            xValues, 
+            halfFirstIndex(
+                computeDiscreteCF(
+                    xValues.front(), 
+                    xValues.back(), 
+                    uDiscrete, fnInv
+                )
+            ), 
+            vK
+        );
+    }
+    /**
+        Computes the expectation given a characteristic function fnInv at the discrete points in xValues and functions of the expectation vK: E[f(vk)]. This is used if the CF is not for a Levy process.  See Fang Oosterlee (2007) for more information.
+        @xValues x values to compute the function at.
+        @uDiscrete Number of discrete points in the complex domain
+        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
+        @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
+        @returns approximate expectation
+    */
     template<typename Array, typename Index,typename CF, typename VK>
     auto computeExpectationVector(
         Array&& xValues, 
@@ -309,10 +449,33 @@ namespace fangoost{
         return computeConvolutionVector(
             xValues, 
             halfFirstIndex(
-                computeDiscreteCF(
+                computeDiscreteCFReal(
                     xValues.front(), 
                     xValues.back(), 
                     uDiscrete, fnInv
+                )
+            ), 
+            vK
+        );
+    }
+
+    template<typename Number, typename Index,typename CF, typename VK>
+    auto computeExpectationPointLevy(
+        const Number& xValue, 
+        const Number& xMin, 
+        const Number& xMax, 
+        const Index& uDiscrete,  
+        CF&& fnInv, 
+        VK&& vK
+    ){
+        return computeConvolutionAtPointLevy(
+            xValue, 
+            halfFirstIndex(
+                computeDiscreteCF(
+                    xMin, 
+                    xMax, 
+                    uDiscrete, 
+                    fnInv
                 )
             ), 
             vK
@@ -330,7 +493,7 @@ namespace fangoost{
         return computeConvolutionAtPoint(
             xValue, 
             halfFirstIndex(
-                computeDiscreteCF(
+                computeDiscreteCFReal(
                     xMin, 
                     xMax, 
                     uDiscrete, 

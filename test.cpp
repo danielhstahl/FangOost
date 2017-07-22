@@ -4,7 +4,12 @@
 #include <iostream>
 #include "FangOost.h"
 #include <complex>
-
+//u is k*pi/(b-a)
+template<typename Number, typename Index>
+auto VkCDF(const Number& x, const Number& u, const Number& a, const Number& b, const Index& k){
+    //auto constant=(b-a)/(k*M_PI);
+    return k==0?x-a:sin((x-a)*u)/u;
+}
 TEST_CASE("Test computeXRange", "[FangOost]"){
     REQUIRE(fangoost::computeXRange(5, 0.0, 1.0)==std::vector<double>({0, .25, .5, .75, 1.0})); 
 }
@@ -85,6 +90,31 @@ TEST_CASE("Test computeInvDiscrete for two gaussian added", "[FangOost]"){
     }   
 } 
 
+TEST_CASE("Test CDF", "[FangOost]"){
+    const double mu=2;
+    const double sigma=1;
+    const int numX=55;
+    const int numU=256;
+    const double xMin=-3;
+    const double xMax=7;
+    auto normCF=[&](const auto& u){ //normal distribution's CF
+        return exp(u*mu+.5*u*u*sigma*sigma);
+    };      
+    std::vector<double> referenceNormal=fangoost::computeXRange(numX, xMin, xMax);
+    referenceNormal=futilities::for_each(std::move(referenceNormal), [&](double x, double index){ 
+        return .5*erfc(-((x-mu)/sigma)/sqrt(2.0));
+        //return exp(-pow(x-mu, 2)/(2*sigma*sigma))/(sqrt(2*M_PI)*sigma);
+    });
+    auto myCDF=fangoost::computeExpectation(numX, numU, xMin, xMax, normCF, [&](const auto& u, const auto& x, const auto& k){
+        return VkCDF(x, u, xMin, xMax, k);
+    });
+    for(int i=0; i<numX; ++i){
+        //std::cout<<myCDF[i]<<", "<<referenceNormal[i]<<std::endl;
+        REQUIRE(myCDF[i]==Approx(referenceNormal[i]));
+    }    
+    
+} 
+
 TEST_CASE("Test computeExpectationVector", "FangOost"){
     int numX=100;
     int numU=100;
@@ -95,7 +125,7 @@ TEST_CASE("Test computeExpectationVector", "FangOost"){
     auto normCF=[&](const auto& u){ //normal distribution's CF
         return u*mu+.5*u*u*sigma*sigma;
     }; 
-    auto vk=[&](const auto& u, const auto& x){
+    auto vk=[&](const auto& u, const auto& x, const auto& k){
         return cos(u*(x-xmin));
     };
     auto result1=fangoost::computeExpectation(numX, numU, xmin, xmax, normCF, vk);
@@ -106,6 +136,6 @@ TEST_CASE("Test computeExpectationVector", "FangOost"){
 
     auto result2=fangoost::computeExpectationVector(xArray, numU, normCF, vk);
     for(int i=0; i<numX; ++i){
-        //REQUIRE(result1[i]==Approx(result2[i]));
+        REQUIRE(result1[i]==Approx(result2[i]));
     }
 }
