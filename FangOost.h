@@ -126,13 +126,13 @@ namespace fangoost{
     for every iteration.  This is done 
     separately from the Characteristic
     Function for computation purposes.*/
-    template<typename Cmpl, typename Number, typename Index, typename VK>
-    auto convoluteLevy(const Cmpl& cfIncr, const Number& x, const Number& u, const Index& uIndex, VK&& vK){
+    template<typename Cmpl, typename X, typename Number, typename Index, typename VK>
+    auto convoluteLevy(const Cmpl& cfIncr, const X& x, const Number& u, const Index& uIndex, VK&& vK){
         return (cfIncr*exp(getComplexU(u)*x)).real()*vK(u, x, uIndex);
     }
     //standard convolution in fouirer space (ie, multiplication)  */
-    template<typename Number, typename Index, typename VK>
-    auto convolute(const Number& cfIncr, const Number& x, const Number& u, const Index& uIndex, VK&& vK){
+    template<typename X, typename Number, typename Index, typename VK>
+    auto convolute(const Number& cfIncr, const X& x, const Number& u, const Index& uIndex, VK&& vK){
         return cfIncr*vK(u, x, uIndex);
     }
 
@@ -224,8 +224,8 @@ namespace fangoost{
         });
     }
 
-    template<typename Number, typename CFArray, typename VK>
-    auto computeConvolutionAtPointLevy(const Number& xValue, const Number& xMin, const Number& xMax, CFArray&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
+    template<typename Number, typename X, typename CFArray, typename VK>
+    auto computeConvolutionAtPointLevy(const X& xValue, const Number& xMin, const Number& xMax, CFArray&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
         auto du=computeDU(xMin, xMax);
         return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
             return convoluteLevy(cfIncr, xValue, getU(du, uIndex), uIndex, vK);
@@ -264,8 +264,8 @@ namespace fangoost{
         });
     }
 
-    template<typename Number, typename CFArray, typename VK>
-    auto computeConvolutionAtPoint(const Number& xValue, const Number& xMin, const Number& xMax, CFArray&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
+    template<typename X, typename Number, typename CFArray, typename VK>
+    auto computeConvolutionAtPoint(const X& xValue, const Number& xMin, const Number& xMax, CFArray&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
         auto du=computeDU(xMin, xMax);
         return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
             return convolute(cfIncr, xValue, getU(du, uIndex), uIndex, vK);
@@ -444,9 +444,9 @@ namespace fangoost{
         );
     }
 
-    template<typename Number, typename Index,typename CF, typename VK>
+    template<typename Number, typename X, typename Index,typename CF, typename VK>
     auto computeExpectationPointLevy(
-        const Number& xValue, 
+        const X& xValue, 
         const Number& xMin, 
         const Number& xMax, 
         const Index& uDiscrete,  
@@ -468,9 +468,9 @@ namespace fangoost{
             vK
         );
     }
-    template<typename Number, typename Index,typename CF, typename VK>
+    template<typename X, typename Number, typename Index,typename CF, typename VK>
     auto computeExpectationPoint(
-        const Number& xValue, 
+        const X& xValue, 
         const Number& xMin, 
         const Number& xMax, 
         const Index& uDiscrete,  
