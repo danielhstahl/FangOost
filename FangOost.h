@@ -82,11 +82,18 @@ namespace fangoost{
         Helper function to make the first index half
         @val Container (eg std::vector) to apply to first index of
     */
-    template<typename Number>
+    /*template<typename Number>
     auto halfFirstIndex(Number&& val){
         val[0]=.5*val[0];
         return std::move(val);
+    }*/
+
+
+    template<typename Number, typename Index>
+    auto halfFirstIndexFn(const Number& val, const Index& index){
+        return index==0?val*.5:val;
     }
+
     /**
         Helper function to get "CP"
         @du Discrete step in u.  Can be computed using computeDU(xMin, xMax)
@@ -207,7 +214,7 @@ namespace fangoost{
         return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
             auto x=getX(xMin, dx, xIndex);
             return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
-                return convoluteLevy(cfIncr, x, getU(du, uIndex), uIndex, vK);
+                return convoluteLevy(halfFirstIndexFn(cfIncr, uIndex), x, getU(du, uIndex), uIndex, vK);
                 //return (cfIncr*exp(getComplexU(u)*x)).real()*vK(u, x);
             });
         });
@@ -219,7 +226,7 @@ namespace fangoost{
         auto du=computeDU(xValues.front(), xValues.back());
         return futilities::for_each_parallel(xValues, [&](const auto& x, const auto& xIndex){
             return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
-                return convoluteLevy(cfIncr, x, getU(du, uIndex), uIndex, vK);
+                return convoluteLevy(halfFirstIndexFn(cfIncr, uIndex), x, getU(du, uIndex), uIndex, vK);
             });
         });
     }
@@ -228,7 +235,7 @@ namespace fangoost{
     auto computeConvolutionAtPointLevy(const X& xValue, const Number& xMin, const Number& xMax, CFArray&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
         auto du=computeDU(xMin, xMax);
         return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
-            return convoluteLevy(cfIncr, xValue, getU(du, uIndex), uIndex, vK);
+            return convoluteLevy(halfFirstIndexFn(cfIncr, uIndex), xValue, getU(du, uIndex), uIndex, vK);
         });
     }
 
@@ -248,7 +255,7 @@ namespace fangoost{
         return futilities::for_each_parallel(0, xDiscrete, [&](const auto& xIndex){
             auto x=getX(xMin, dx, xIndex);
             return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
-                return convolute(cfIncr, x, getU(du, uIndex), uIndex, vK);
+                return convolute(halfFirstIndexFn(cfIncr, uIndex), x, getU(du, uIndex), uIndex, vK);
             });
         });
     }
@@ -259,7 +266,7 @@ namespace fangoost{
         auto du=computeDU(xValues.front(), xValues.back());
         return futilities::for_each_parallel(xValues, [&](const auto& x, const auto& xIndex){
             return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
-                return convolute(cfIncr, x, getU(du, uIndex), uIndex, vK);
+                return convolute(halfFirstIndexFn(cfIncr, uIndex), x, getU(du, uIndex), uIndex, vK);
             });
         });
     }
@@ -268,7 +275,7 @@ namespace fangoost{
     auto computeConvolutionAtPoint(const X& xValue, const Number& xMin, const Number& xMax, CFArray&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
         auto du=computeDU(xMin, xMax);
         return futilities::sum(discreteCF, [&](const auto& cfIncr, const auto& uIndex){
-            return convolute(cfIncr, xValue, getU(du, uIndex), uIndex, vK);
+            return convolute(halfFirstIndexFn(cfIncr, uIndex), xValue, getU(du, uIndex), uIndex, vK);
         });
     }
 
@@ -310,7 +317,7 @@ namespace fangoost{
     */
     template<typename Index, typename Number, typename CF>
     auto computeInvDiscrete(const Index& xDiscrete, const Number& xMin, const Number& xMax, CF&& fnInv){
-        return helperForInverse(xDiscrete, xMin, xMax, halfFirstIndex(fnInv));
+        return helperForInverse(xDiscrete, xMin, xMax, fnInv);
     }
 
     /**
@@ -362,9 +369,9 @@ namespace fangoost{
     ){  
         return computeConvolutionLevy(
             xDiscrete, xMin, xMax, 
-            halfFirstIndex(
-                computeDiscreteCF(xMin, xMax, uDiscrete, fnInv)
-            ), 
+            //halfFirstIndex(
+                computeDiscreteCF(xMin, xMax, uDiscrete, fnInv),
+            //), 
             vK
         );
     }
@@ -388,9 +395,9 @@ namespace fangoost{
     ){  
         return computeConvolutionLevy(
             xDiscrete, xMin, xMax, 
-            halfFirstIndex(
-                fnInv
-            ), 
+            //halfFirstIndex(
+                fnInv,
+            //), 
             vK
         );
     }
@@ -415,9 +422,9 @@ namespace fangoost{
     ){  
         return computeConvolution(
             xDiscrete, xMin, xMax, 
-            halfFirstIndex(
-                computeDiscreteCFReal(xMin, xMax, uDiscrete, fnInv)
-            ), 
+            //halfFirstIndex(
+                computeDiscreteCFReal(xMin, xMax, uDiscrete, fnInv),
+            //), 
             vK
         );
     }
@@ -441,9 +448,9 @@ namespace fangoost{
     ){  
         return computeConvolution(
             xDiscrete, xMin, xMax, 
-            halfFirstIndex(
-                fnInv
-            ), 
+           //halfFirstIndex(
+                fnInv,
+            //), 
             vK
         );
     }
@@ -465,13 +472,13 @@ namespace fangoost{
     ){
         return computeConvolutionVectorLevy(
             xValues, 
-            halfFirstIndex(
+            //halfFirstIndex(
                 computeDiscreteCF(
                     xValues.front(), 
                     xValues.back(), 
                     uDiscrete, fnInv
-                )
-            ), 
+                ),
+           // ), 
             vK
         );
     }
@@ -491,9 +498,9 @@ namespace fangoost{
     ){
         return computeConvolutionVectorLevy(
             xValues, 
-            halfFirstIndex(
-                fnInv
-            ), 
+           // halfFirstIndex(
+                fnInv,
+            //), 
             vK
         );
     }
@@ -514,13 +521,13 @@ namespace fangoost{
     ){
         return computeConvolutionVector(
             xValues, 
-            halfFirstIndex(
-                computeDiscreteCFReal(
-                    xValues.front(), 
-                    xValues.back(), 
-                    uDiscrete, fnInv
-                )
-            ), 
+            //halfFirstIndex(
+            computeDiscreteCFReal(
+                xValues.front(), 
+                xValues.back(), 
+                uDiscrete, fnInv
+            ),
+            //), 
             vK
         );
     }
@@ -540,9 +547,9 @@ namespace fangoost{
     ){
         return computeConvolutionVector(
             xValues, 
-            halfFirstIndex(
-                fnInv
-            ), 
+            //halfFirstIndex(
+                fnInv,
+            //), 
             vK
         );
     }
@@ -560,14 +567,14 @@ namespace fangoost{
             xValue, 
             xMin,
             xMax,
-            halfFirstIndex(
+            //halfFirstIndex(
                 computeDiscreteCF(
                     xMin, 
                     xMax, 
                     uDiscrete, 
                     fnInv
-                )
-            ), 
+                ),
+            //), 
             vK
         );
     }
@@ -583,9 +590,9 @@ namespace fangoost{
             xValue, 
             xMin,
             xMax,
-            halfFirstIndex(
-                fnInv
-            ), 
+            //halfFirstIndex(
+                fnInv,
+            //), 
             vK
         );
     }
@@ -602,14 +609,14 @@ namespace fangoost{
             xValue, 
             xMin,
             xMax,
-            halfFirstIndex(
+            //halfFirstIndex(
                 computeDiscreteCFReal(
                     xMin, 
                     xMax, 
                     uDiscrete, 
                     fnInv
-                )
-            ), 
+                ),
+            //), 
             vK
         );
     }
@@ -625,9 +632,9 @@ namespace fangoost{
             xValue, 
             xMin,
             xMax,
-            halfFirstIndex(
-                fnInv
-            ), 
+            //halfFirstIndex(
+                fnInv,
+            //), 
             vK
         );
     }
