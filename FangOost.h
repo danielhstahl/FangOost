@@ -289,7 +289,14 @@ namespace fangoost{
     }
 
 
+/********
+    FROM HERE ON are the functions that should be used by external programs
 
+
+
+
+
+**/
 
     /**
         Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. See Fang Oosterlee (2007) for more information.
@@ -362,6 +369,32 @@ namespace fangoost{
         );
     }
     /**
+        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. This is used if the CF is of a Levy process.  See Fang Oosterlee (2007) for more information.
+        @xDiscrete Number of discrete points in density domain
+        @uDiscrete Number of discrete points in the complex domain
+        @xmin Minimum number in the density domain
+        @xmax Maximum number in the density domain
+        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
+        @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
+        @returns approximate expectation
+    */
+    template<typename Index, typename Number, typename CF, typename VK>
+    auto computeExpectationLevyDiscrete(
+        const Index& xDiscrete,   
+        const Number& xMin, 
+        const Number& xMax, 
+        CF&& fnInv, 
+        VK&& vK
+    ){  
+        return computeConvolutionLevy(
+            xDiscrete, xMin, xMax, 
+            halfFirstIndex(
+                fnInv
+            ), 
+            vK
+        );
+    }
+    /**
         Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. Only used for non-Levy processes.  See Fang Oosterlee (2007) for more information.
         @xDiscrete Number of discrete points in density domain
         @uDiscrete Number of discrete points in the complex domain
@@ -384,6 +417,32 @@ namespace fangoost{
             xDiscrete, xMin, xMax, 
             halfFirstIndex(
                 computeDiscreteCFReal(xMin, xMax, uDiscrete, fnInv)
+            ), 
+            vK
+        );
+    }
+    /**
+        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. Only used for non-Levy processes.  See Fang Oosterlee (2007) for more information.
+        @xDiscrete Number of discrete points in density domain
+        @uDiscrete Number of discrete points in the complex domain
+        @xmin Minimum number in the density domain
+        @xmax Maximum number in the density domain
+        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
+        @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
+        @returns approximate expectation
+    */
+    template<typename Index, typename Number, typename CF, typename VK>
+    auto computeExpectationDiscrete(
+        const Index& xDiscrete, 
+        const Number& xMin, 
+        const Number& xMax, 
+        CF&& fnInv, 
+        VK&& vK
+    ){  
+        return computeConvolution(
+            xDiscrete, xMin, xMax, 
+            halfFirstIndex(
+                fnInv
             ), 
             vK
         );
@@ -417,6 +476,28 @@ namespace fangoost{
         );
     }
     /**
+        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. This is used if the CF is of a Levy process.  See Fang Oosterlee (2007) for more information.
+        @xValues x values to compute the function at.
+        @uDiscrete Number of discrete points in the complex domain
+        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
+        @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
+        @returns approximate expectation
+    */
+    template<typename Array,typename CF, typename VK>
+    auto computeExpectationVectorLevyDiscrete(
+        Array&& xValues, 
+        CF&& fnInv, 
+        VK&& vK
+    ){
+        return computeConvolutionVectorLevy(
+            xValues, 
+            halfFirstIndex(
+                fnInv
+            ), 
+            vK
+        );
+    }
+    /**
         Computes the expectation given a characteristic function fnInv at the discrete points in xValues and functions of the expectation vK: E[f(vk)]. This is used if the CF is not for a Levy process.  See Fang Oosterlee (2007) for more information.
         @xValues x values to compute the function at.
         @uDiscrete Number of discrete points in the complex domain
@@ -439,6 +520,28 @@ namespace fangoost{
                     xValues.back(), 
                     uDiscrete, fnInv
                 )
+            ), 
+            vK
+        );
+    }
+    /**
+        Computes the expectation given a characteristic function fnInv at the discrete points in xValues and functions of the expectation vK: E[f(vk)]. This is used if the CF is not for a Levy process.  See Fang Oosterlee (2007) for more information.
+        @xValues x values to compute the function at.
+        @uDiscrete Number of discrete points in the complex domain
+        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
+        @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
+        @returns approximate expectation
+    */
+    template<typename Array, typename CF, typename VK>
+    auto computeExpectationVectorDiscrete(
+        Array&& xValues, 
+        CF&& fnInv, 
+        VK&& vK
+    ){
+        return computeConvolutionVector(
+            xValues, 
+            halfFirstIndex(
+                fnInv
             ), 
             vK
         );
@@ -468,6 +571,24 @@ namespace fangoost{
             vK
         );
     }
+    template<typename Number, typename X, typename CF, typename VK>
+    auto computeExpectationPointLevyDiscrete(
+        const X& xValue, 
+        const Number& xMin, 
+        const Number& xMax, 
+        CF&& fnInv, 
+        VK&& vK
+    ){
+        return computeConvolutionAtPointLevy(
+            xValue, 
+            xMin,
+            xMax,
+            halfFirstIndex(
+                fnInv
+            ), 
+            vK
+        );
+    }
     template<typename X, typename Number, typename Index,typename CF, typename VK>
     auto computeExpectationPoint(
         const X& xValue, 
@@ -488,6 +609,24 @@ namespace fangoost{
                     uDiscrete, 
                     fnInv
                 )
+            ), 
+            vK
+        );
+    }
+    template<typename X, typename Number, typename CF, typename VK>
+    auto computeExpectationPointDiscrete(
+        const X& xValue, 
+        const Number& xMin, 
+        const Number& xMax, 
+        CF&& fnInv, 
+        VK&& vK
+    ){
+        return computeConvolutionAtPoint(
+            xValue, 
+            xMin,
+            xMax,
+            halfFirstIndex(
+                fnInv
             ), 
             vK
         );
