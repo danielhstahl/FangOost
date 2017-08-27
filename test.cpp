@@ -92,11 +92,11 @@ TEST_CASE("Test computeInvDiscrete for two gaussian added", "[FangOost]"){
 
 TEST_CASE("Test CDF", "[FangOost]"){
     const double mu=2;
-    const double sigma=1;
+    const double sigma=5;
     const int numX=55;
     const int numU=256;
-    const double xMin=-3;
-    const double xMax=7;
+    const double xMin=-20;
+    const double xMax=25;
     auto normCF=[&](const auto& u){ //normal distribution's CF
         return exp(u*mu+.5*u*u*sigma*sigma);
     };      
