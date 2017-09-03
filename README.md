@@ -16,6 +16,10 @@ The library falls into two categories: a "Levy" section which assumes that the c
 
 To see how this algorithm can be used, see the [test](./test.cpp) code, my [FFTOptionPricing](https://github.com/phillyfan1138/FFTOptionPricing) repo, and my [cfdistutilities](https://github.com/phillyfan1138/cfdistutilities) repo.
 
+## Some API oddities
+
+The `computeInvDiscrete` functions (and some of the other discrete functions) assume that the CF has already been multiplied by `cp`; see the test cases with `computeInvDiscrete`.  However, some discrete functions do take a "raw" CF: see for example `computeInvDiscreteLog`.  The reason is that adding `cp` is not added to the `computeInvDiscrete` function is for efficiency purposes.  
+
 ## Limitations
 
 For densities without derivatives of all orders, the convergence may be slow. For example, Beta distributions may not converge at all when the mode of the distribution is near zero or one.
