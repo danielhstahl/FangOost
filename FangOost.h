@@ -160,10 +160,9 @@ namespace fangoost{
     auto convertLogCFToRealExp(const Number& xMin, const Number& xMax, CF&& logAndComplexCF){ 
         Number du=computeDU(xMin, xMax);
         auto cp=computeCP(du); 
-        int m=logAndComplexCF.size();
-        return futilities::for_each_parallel(0, m, 
-            [&](const auto& uIndex){
-                return exp(logAndComplexCF[uIndex]-getComplexU(getU(du, uIndex))*xMin).real()*cp;
+        return futilities::for_each_parallel_copy(logAndComplexCF, 
+            [&](const auto& val, const auto& uIndex){
+                return exp(val-getComplexU(getU(du, uIndex))*xMin).real()*cp;
             }
         );
     }
@@ -279,21 +278,7 @@ namespace fangoost{
         });
     }
 
-    /**
-        Computes the convolution given the discretized characteristic function.
-        @xDiscrete Number of discrete points in density domain
-        @xmin Minimum number in the density domain
-        @xmax Maximum number in the density domain
-        @discreteCF Discretized characteristic function.  This is real numbers
-        @vK Function (parameters u and x)  
-        @returns approximate convolution
-    */
-    template<typename Index, typename Number, typename CF>
-    auto helperForInverse(const Index& xDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF){ //vk as defined in fang oosterlee
-        return computeConvolution(xDiscrete, xMin, xMax, discreteCF, [&](const auto& u, const auto& x, const auto& k){
-            return cos(u*(x-xMin));
-        });
-    }
+
 
 
 /********
@@ -316,8 +301,10 @@ namespace fangoost{
         @returns approximate expectation
     */
     template<typename Index, typename Number, typename CF>
-    auto computeInvDiscrete(const Index& xDiscrete, const Number& xMin, const Number& xMax, CF&& fnInv){
-        return helperForInverse(xDiscrete, xMin, xMax, fnInv);
+    auto computeInvDiscrete(const Index& xDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF){
+        return computeConvolution(xDiscrete, xMin, xMax, discreteCF, [&](const auto& u, const auto& x, const auto& k){
+            return cos(u*(x-xMin));
+        });
     }
 
     /**
