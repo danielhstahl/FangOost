@@ -327,7 +327,7 @@ namespace fangoost{
         @xDiscrete Number of discrete points in density domain
         @xmin Minimum number in the density domain
         @xmax Maximum number in the density domain
-        @convertLogCFToRealExp vector of log characteristic function of the density at discrete U 
+        @logFnInv vector of log characteristic function of the density at discrete U 
         @returns approximate density
     */
     template<typename Index, typename Number, typename CF>
