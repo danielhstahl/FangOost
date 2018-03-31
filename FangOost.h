@@ -281,14 +281,12 @@ namespace fangoost{
 **/
 
     /**
-        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. See Fang Oosterlee (2007) for more information.
+        Computes the density given a discretized characteristic function discreteCF (of size uDiscrete) at the discrete points xRange in xmin, xmax. See Fang Oosterlee (2007) for more information.
         @xDiscrete Number of discrete points in density domain
-        @uDiscrete Number of discrete points in the complex domain
         @xmin Minimum number in the density domain
         @xmax Maximum number in the density domain
-        @fnInv vector of characteristic function of the density at discrete U
-        @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
-        @returns approximate expectation
+        @discreteCF vector of characteristic function of the density at discrete U
+        @returns approximate density
     */
     template<typename Index, typename Number, typename CF>
     auto computeInvDiscrete(const Index& xDiscrete, const Number& xMin, const Number& xMax, CF&& discreteCF){
@@ -298,14 +296,13 @@ namespace fangoost{
     }
 
     /**
-        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. See Fang Oosterlee (2007) for more information.
+        Computes the density given a characteristic function fnInv at the discrete points xRange in xmin, xmax. See Fang Oosterlee (2007) for more information.
         @xDiscrete Number of discrete points in density domain
         @uDiscrete Number of discrete points in the complex domain
         @xmin Minimum number in the density domain
         @xmax Maximum number in the density domain
         @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
-        @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
-        @returns approximate expectation
+        @returns approximate density
     */
     template<typename Index, typename Number, typename CF>
     auto computeInv(const Index& xDiscrete, const Index& uDiscrete,  const Number& xMin, const Number& xMax, CF&& fnInv){  
@@ -351,12 +348,12 @@ namespace fangoost{
         );
     }
     /**
-        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. This is used if the CF is of a Levy process.  See Fang Oosterlee (2007) for more information.
+        Computes the expectation given a discretized characteristic function discreteCF (of size uDiscrete) at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. This is used if the CF is of a Levy process.  See Fang Oosterlee (2007) for more information.
         @xDiscrete Number of discrete points in density domain
         @uDiscrete Number of discrete points in the complex domain
         @xmin Minimum number in the density domain
         @xmax Maximum number in the density domain
-        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
+        @discreteCF vector of characteristic function of the density at discrete U
         @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
         @returns approximate expectation
     */
@@ -365,12 +362,12 @@ namespace fangoost{
         const Index& xDiscrete,   
         const Number& xMin, 
         const Number& xMax, 
-        CF&& fnInv, 
+        CF&& discreteCF, 
         VK&& vK
     ){  
         return computeConvolutionLevy(
             xDiscrete, xMin, xMax, 
-            std::move(fnInv),
+            std::move(discreteCF),
             std::move(vK)
         );
     }
@@ -400,12 +397,12 @@ namespace fangoost{
         );
     }
     /**
-        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. Only used for non-Levy processes.  See Fang Oosterlee (2007) for more information.
+        Computes the expectation given a discretized characteristic function discreteCF (of size uDiscrete) at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. Only used for non-Levy processes.  See Fang Oosterlee (2007) for more information.
         @xDiscrete Number of discrete points in density domain
         @uDiscrete Number of discrete points in the complex domain
         @xmin Minimum number in the density domain
         @xmax Maximum number in the density domain
-        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
+        @discreteCF vector of characteristic function of the density at discrete U
         @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
         @returns approximate expectation
     */
@@ -425,8 +422,8 @@ namespace fangoost{
     }
 
     /**
-        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. This is used if the CF is of a Levy process.  See Fang Oosterlee (2007) for more information.
-        @xValues x values to compute the function at.
+        Computes the expectation given a characteristic function fnInv at the vector of discrete points xValues and functions of the expectation vK: E[f(vk)]. This is used if the CF is of a Levy process.  See Fang Oosterlee (2007) for more information.
+        @xValues Array of x values to compute the function at.
         @uDiscrete Number of discrete points in the complex domain
         @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
         @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
@@ -450,28 +447,28 @@ namespace fangoost{
         );
     }
     /**
-        Computes the expectation given a characteristic function fnInv at the discrete points xRange in xmin, xmax and functions of the expectation vK: E[f(vk)]. This is used if the CF is of a Levy process.  See Fang Oosterlee (2007) for more information.
+        Computes the expectation given a discretized characteristic function discreteCF (of size uDiscrete) at the vector of discrete points xValues and functions of the expectation vK: E[f(vk)]. This is used if the CF is of a Levy process.  See Fang Oosterlee (2007) for more information.
         @xValues x values to compute the function at.
         @uDiscrete Number of discrete points in the complex domain
-        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
+        @discreteCF vector of characteristic function of the density at discrete U
         @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
         @returns approximate expectation
     */
     template<typename Array,typename CF, typename VK>
     auto computeExpectationVectorLevyDiscrete(
         Array&& xValues, 
-        CF&& fnInv, 
+        CF&& discreteCF, 
         VK&& vK
     ){
         return computeConvolutionVectorLevy(
             std::move(xValues), 
-            std::move(fnInv),
+            std::move(discreteCF),
             std::move(vK)
         );
     }
     /**
-        Computes the expectation given a characteristic function fnInv at the discrete points in xValues and functions of the expectation vK: E[f(vk)]. This is used if the CF is not for a Levy process.  See Fang Oosterlee (2007) for more information.
-        @xValues x values to compute the function at.
+        Computes the expectation given a characteristic function fnInv at the array of discrete points in xValues and functions of the expectation vK: E[f(vk)]. This is used if the CF is not for a Levy process.  See Fang Oosterlee (2007) for more information.
+        @xValues Array of x values to compute the function at.
         @uDiscrete Number of discrete points in the complex domain
         @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
         @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
@@ -495,22 +492,22 @@ namespace fangoost{
         );
     }
     /**
-        Computes the expectation given a characteristic function fnInv at the discrete points in xValues and functions of the expectation vK: E[f(vk)]. This is used if the CF is not for a Levy process.  See Fang Oosterlee (2007) for more information.
+        Computes the expectation given a discretized characteristic function discreteCF (of size uDiscrete) at the discrete points in xValues and functions of the expectation vK: E[f(vk)]. This is used if the CF is not for a Levy process.  See Fang Oosterlee (2007) for more information.
         @xValues x values to compute the function at.
         @uDiscrete Number of discrete points in the complex domain
-        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
+        @discreteCF vector of characteristic function of the density at discrete U
         @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
         @returns approximate expectation
     */
     template<typename Array, typename CF, typename VK>
     auto computeExpectationVectorDiscrete(
         Array&& xValues, 
-        CF&& fnInv, 
+        CF&& discreteCF, 
         VK&& vK
     ){
         return computeConvolutionVector(
             std::move(xValues), 
-            std::move(fnInv),
+            std::move(discreteCF),
             std::move(vK)
         );
     }
