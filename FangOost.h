@@ -210,14 +210,23 @@ namespace fangoost{
     }
 
 
-    template<typename Array, typename CFArray, typename VK>
-    auto computeConvolutionVectorLevy(Array&& xValues, CFArray&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
+    
+    template<typename Array, typename CFArray, typename VK, typename ExtraFn>
+    auto computeConvolutionVectorLevy(Array&& xValues, CFArray&& discreteCF, VK&& vK, ExtraFn&& extraFn){ //vk as defined in fang oosterlee
         auto du=computeDU(xValues.front(), xValues.back());
         return futilities::for_each_parallel(std::move(xValues), [&](const auto& x, const auto& xIndex){
-            return futilities::sum(std::move(discreteCF), [&](const auto& cfIncr, const auto& uIndex){
+            return extraFn(futilities::sum(std::move(discreteCF), [&](const auto& cfIncr, const auto& uIndex){
                 return convoluteLevy(halfFirstIndexFn(cfIncr, uIndex), x, getU(du, uIndex), uIndex, std::move(vK));
-            });
+            }), x, xIndex);
         });
+    }
+
+    template<typename Array, typename CFArray, typename VK>
+    auto computeConvolutionVectorLevy(Array&& xValues, CFArray&& discreteCF, VK&& vK){ //vk as defined in fang oosterlee
+        auto extraFn=[](auto&& v, const auto& x, const auto& index){
+            return std::move(v);
+        };
+        return computeConvolutionVectorLevy(xValues, discreteCF, vK, std::move(extraFn));
     }
 
     template<typename Number, typename X, typename CFArray, typename VK>
@@ -427,6 +436,34 @@ namespace fangoost{
         @uDiscrete Number of discrete points in the complex domain
         @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
         @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
+        @extraFn Function (parameters expectation, x, and index) to multiply result by.  If not provided, defaults to raw expectation.
+        @returns approximate expectation
+    */
+    template<typename Array, typename Index,typename CF, typename VK, typename ExtraFn>
+    auto computeExpectationVectorLevy(
+        Array&& xValues, 
+        const Index& uDiscrete,  
+        CF&& fnInv, 
+        VK&& vK,
+        ExtraFn&& extraFn
+    ){
+        return computeConvolutionVectorLevy(
+            std::move(xValues), 
+            computeDiscreteCF(
+                xValues.front(), 
+                xValues.back(), 
+                uDiscrete, std::move(fnInv)
+            ),
+            std::move(vK),
+            std::move(extraFn)
+        );
+    }
+    /**
+        Computes the expectation given a characteristic function fnInv at the vector of discrete points xValues and functions of the expectation vK: E[f(vk)]. This is used if the CF is of a Levy process.  See Fang Oosterlee (2007) for more information.
+        @xValues Array of x values to compute the function at.
+        @uDiscrete Number of discrete points in the complex domain
+        @fnInv Characteristic function of the density.  May be computationally intense to compute (eg, if using the combined CF of millions of loans)
+        @vK Function (parameters u and x) or vector to multiply discrete characteristic function by.  
         @returns approximate expectation
     */
     template<typename Array, typename Index,typename CF, typename VK>
@@ -436,15 +473,10 @@ namespace fangoost{
         CF&& fnInv, 
         VK&& vK
     ){
-        return computeConvolutionVectorLevy(
-            std::move(xValues), 
-            computeDiscreteCF(
-                xValues.front(), 
-                xValues.back(), 
-                uDiscrete, std::move(fnInv)
-            ),
-            std::move(vK)
-        );
+        auto extraFn=[](auto&& v, const auto& x, const auto& index){
+            return std::move(v);
+        };
+        return computeExpectationVectorLevy(std::move(xValues), uDiscrete, std::move(fnInv), std::move(vK), std::move(extraFn));
     }
     /**
         Computes the expectation given a discretized characteristic function discreteCF (of size uDiscrete) at the vector of discrete points xValues and functions of the expectation vK: E[f(vk)]. This is used if the CF is of a Levy process.  See Fang Oosterlee (2007) for more information.
